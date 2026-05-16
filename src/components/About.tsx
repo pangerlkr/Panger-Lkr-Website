@@ -32,7 +32,7 @@ export default function About() {
   const scaleY = useSpring(bioScroll, { stiffness: 150, damping: 20 })
 
   return (
-    <section id="about" className="relative bg-[#121212] py-24 px-6 md:px-12 lg:px-20 overflow-x-hidden">
+    <section id="about" className="relative bg-[#121212] py-24 px-6 md:px-12 lg:px-20">
       <div className="max-w-6xl mx-auto">
         {/* Intro Section / Biography */}
         <div ref={bioRef} className="grid grid-cols-1 lg:grid-cols-2 gap-20 items-center mb-48 relative">

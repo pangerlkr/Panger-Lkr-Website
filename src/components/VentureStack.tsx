@@ -1,7 +1,7 @@
 'use client'
 
 import { motion, useScroll, useTransform, useSpring } from 'framer-motion'
-import { useRef } from 'react'
+import { useState, useRef } from 'react'
 import SectionScrollyCanvas from './SectionScrollyCanvas'
 
 const VENTURES = [
@@ -99,15 +99,15 @@ function VentureCard({ venture, index, total, scrollYProgress }: { venture: type
 }
 
 export default function VentureStack() {
-  const containerRef = useRef<HTMLDivElement>(null)
+  const [element, setElement] = useState<HTMLElement | null>(null)
   const { scrollYProgress } = useScroll({
-    target: containerRef,
+    target: element ? { current: element } : undefined,
     offset: ["start start", "end end"]
   })
 
   return (
-    <div ref={containerRef} className="relative min-h-[300vh]">
-      {/* Background Cinematic Sequence - Now linked to full section scroll */}
+    <div ref={setElement} className="relative min-h-[300vh] w-full">
+      {/* Background Cinematic Sequence */}
       <div className="sticky top-0 h-screen w-full overflow-hidden pointer-events-none z-0">
         <SectionScrollyCanvas scrollYProgress={scrollYProgress} />
       </div>

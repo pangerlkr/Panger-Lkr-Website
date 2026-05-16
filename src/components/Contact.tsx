@@ -1,248 +1,245 @@
 'use client'
 
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useState, useEffect, useRef } from 'react'
 
 const SOCIALS = [
-  { 
-    label: 'Instagram', 
-    href: 'https://instagram.com/panger__lkr', 
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/>
-      </svg>
-    )
-  },
-  { 
-    label: 'LinkedIn', 
-    href: 'https://linkedin.com/in/pangerlkr', 
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/>
-      </svg>
-    )
-  },
-  { 
-    label: 'GitHub', 
-    href: 'https://github.com/pangerlkr', 
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>
-      </svg>
-    )
-  },
-  { 
-    label: 'Facebook', 
-    href: 'https://facebook.com/lkr.panger', 
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/>
-      </svg>
-    )
-  },
-  { 
-    label: 'X (Twitter)', 
-    href: 'https://x.com/panger__lkr', 
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-        <path d="M18.901 1.153h3.68l-8.04 9.19L24 22.846h-7.406l-5.8-7.584-6.638 7.584H.474l8.6-9.83L0 1.154h7.594l5.243 6.932 6.064-6.932zm-1.292 19.49h2.039L6.486 3.24H4.298l13.311 17.403z"/>
-      </svg>
-    )
-  },
+  { label: 'Instagram', href: 'https://instagram.com/panger__lkr' },
+  { label: 'LinkedIn', href: 'https://linkedin.com/in/pangerlkr' },
+  { label: 'GitHub', href: 'https://github.com/pangerlkr' },
+  { label: 'X (Twitter)', href: 'https://x.com/panger__lkr' },
 ]
 
 export default function Contact() {
+  const [phase, setPhase] = useState<'initial' | 'flowIn' | 'zoom'>('initial')
+  const [formStatus, setFormStatus] = useState('AWAITING_INPUT')
+  const [activeField, setActiveField] = useState<string | null>(null)
+  
+  // Input states for the terminal typing effect
+  const [name, setName] = useState('')
+  const [email, setEmail] = useState('')
+  const [message, setMessage] = useState('')
+  const [confirm, setConfirm] = useState(false)
+
+  // Handle the entry sequence
+  useEffect(() => {
+    // 1. Flow in the desk and PC
+    const t1 = setTimeout(() => setPhase('flowIn'), 200)
+    // 2. Zoom into the screen
+    const t2 = setTimeout(() => setPhase('zoom'), 1500)
+    
+    return () => { clearTimeout(t1); clearTimeout(t2) }
+  }, [])
+
+  const handleFocus = (field: string, status: string) => {
+    setActiveField(field)
+    setFormStatus(status)
+  }
+
   return (
-    <section
-      id="contact"
-      className="relative bg-[#121212] pt-8 pb-24 px-6 md:px-12 lg:px-20 overflow-hidden"
-    >
-      {/* Ambient glow */}
-      <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[400px] rounded-full pointer-events-none"
-        style={{
-          background: 'radial-gradient(ellipse, rgba(200,255,0,0.06) 0%, transparent 70%)',
-          filter: 'blur(40px)',
+    <section id="contact" className="relative w-full h-[100dvh] bg-[#050505] overflow-hidden flex flex-col items-center justify-end perspective-1000 -mt-20">
+      {/* Background ambient lighting */}
+      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(200,255,0,0.03)_0%,transparent_60%)] pointer-events-none" />
+
+      {/* The Desk */}
+      <motion.div 
+        className="absolute bottom-0 w-[150%] h-64 bg-gradient-to-t from-[#000000] to-[#111111] border-t border-white/5"
+        initial={{ y: 300, opacity: 0 }}
+        animate={{ 
+          y: phase === 'initial' ? 300 : (phase === 'zoom' ? 500 : 0), 
+          opacity: phase === 'initial' ? 0 : (phase === 'zoom' ? 0 : 1) 
         }}
-      />
+        transition={{ duration: 1.2, ease: 'easeInOut' }}
+        style={{ transform: 'rotateX(70deg)', transformOrigin: 'bottom' }}
+      >
+        {/* Desk texture/grid */}
+        <div className="absolute inset-0 opacity-[0.02]" style={{ backgroundImage: 'linear-gradient(#fff 1px, transparent 1px), linear-gradient(90deg, #fff 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
+      </motion.div>
 
-      <div className="relative max-w-4xl mx-auto">
-        {/* Divider */}
-        <div className="h-px w-full bg-white/8 mb-24" />
-
-        {/* Heading */}
-        <motion.div
-          initial={{ opacity: 0, y: 50 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.4 }}
-          transition={{ duration: 0.8 }}
-          className="text-center mb-16"
+      {/* The Monitor Assembly */}
+      <motion.div
+        className="absolute origin-bottom flex flex-col items-center justify-end z-10"
+        initial={{ y: 500, scale: 0.5, opacity: 0 }}
+        animate={{
+          y: phase === 'initial' ? 500 : (phase === 'zoom' ? 0 : 60),
+          scale: phase === 'initial' ? 0.5 : (phase === 'zoom' ? 1 : 0.8),
+          opacity: 1,
+          width: phase === 'zoom' ? '100vw' : '500px',
+          height: phase === 'zoom' ? '100dvh' : '400px',
+          bottom: phase === 'zoom' ? 0 : 120, // Sit on the desk
+        }}
+        transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
+      >
+        {/* Monitor Bezel */}
+        <motion.div 
+          className="w-full h-full bg-[#1a1a1a] flex flex-col items-center justify-center relative overflow-hidden"
+          animate={{
+            borderRadius: phase === 'zoom' ? '0px' : '32px',
+            borderWidth: phase === 'zoom' ? '0px' : '24px',
+            borderBottomWidth: phase === 'zoom' ? '0px' : '40px',
+            borderColor: '#222',
+            boxShadow: phase === 'zoom' ? 'none' : '0 20px 50px rgba(0,0,0,0.8), inset 0 2px 10px rgba(255,255,255,0.05)',
+          }}
+          transition={{ duration: 1.4, ease: [0.22, 1, 0.36, 1] }}
         >
-          <p className="text-xs tracking-[0.35em] uppercase text-accent mb-4">Let&apos;s talk</p>
-          <h2
-            className="font-black leading-none tracking-tight"
-            style={{ fontSize: 'clamp(3rem, 10vw, 8rem)' }}
+          {/* Brand plate on bezel */}
+          <motion.div 
+            className="absolute bottom-[-30px] text-[8px] tracking-[0.3em] font-black text-white/10 uppercase"
+            animate={{ opacity: phase === 'zoom' ? 0 : 1 }}
           >
-            <span
-              style={{
-                background: 'linear-gradient(160deg, #F0F0F0 0%, rgba(240,240,240,0.3) 100%)',
-                WebkitBackgroundClip: 'text',
-                WebkitTextFillColor: 'transparent',
-                backgroundClip: 'text',
-              }}
-            >
-              Say Hello.
-            </span>
-          </h2>
-        </motion.div>
+            NEXUS_TERM_9000
+          </motion.div>
 
-        {/* Contact Split Layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 mb-24">
-          {/* Left: Contact Info */}
-          <motion.div
-            initial={{ opacity: 0, x: -30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-          >
-            <h3 className="text-xs tracking-[0.3em] uppercase text-accent font-black mb-8">Get in touch</h3>
-            <div className="space-y-8">
-              <a
-                href="mailto:contact@pangerlkr.link"
-                className="group flex items-center gap-6 p-6 rounded-2xl glass hover:bg-white/5 transition-all duration-300"
-              >
-                <div className="w-12 h-12 rounded-xl bg-accent/10 flex items-center justify-center text-accent group-hover:scale-110 transition-transform">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-                </div>
-                <div>
-                  <p className="text-[10px] tracking-widest uppercase text-white/20 font-bold mb-1">Email</p>
-                  <p className="text-white/80 font-medium">contact@pangerlkr.link</p>
-                </div>
-              </a>
+          {/* Screen Inner Canvas */}
+          <div className="w-full h-full bg-[#020a02] rounded-[8px] relative overflow-hidden flex flex-col font-mono" style={{ boxShadow: 'inset 0 0 40px rgba(0,0,0,0.8)' }}>
+            
+            {/* CRT Effects */}
+            {/* Scanlines */}
+            <div className="absolute inset-0 pointer-events-none opacity-10 z-50 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_4px,3px_100%]" />
+            {/* Flicker/Vignette */}
+            <div className="absolute inset-0 pointer-events-none z-40 bg-[radial-gradient(circle_at_center,transparent_50%,rgba(0,0,0,0.6)_100%)] mix-blend-multiply" />
+            <motion.div 
+              className="absolute inset-0 pointer-events-none z-40 bg-[#C8FF00] mix-blend-overlay"
+              animate={{ opacity: [0.01, 0.03, 0.01, 0.04, 0.01] }}
+              transition={{ duration: 0.2, repeat: Infinity, repeatType: 'reverse' }}
+            />
 
-              <a
-                href="tel:+918132872135"
-                className="group flex items-center gap-6 p-6 rounded-2xl glass hover:bg-white/5 transition-all duration-300"
-              >
-                <div className="w-12 h-12 rounded-xl bg-white/5 flex items-center justify-center text-white/40 group-hover:scale-110 transition-transform">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                </div>
+            {/* Terminal Content (Only interactable when zoomed) */}
+            <div className="p-6 md:p-12 lg:p-20 w-full h-full overflow-y-auto text-[#C8FF00] z-30 flex flex-col pt-24 md:pt-32" style={{ textShadow: '0 0 5px rgba(200,255,0,0.5)' }}>
+              
+              {/* Boot sequence header */}
+              <div className="mb-10 border-b border-[#C8FF00]/20 pb-6 flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div>
-                  <p className="text-[10px] tracking-widest uppercase text-white/20 font-bold mb-1">Phone</p>
-                  <p className="text-white/80 font-medium">+91 81328 72135</p>
+                  <p className="text-[10px] tracking-widest opacity-60 mb-2">OS_VER: NEXUS_2.4.1 // SECURE_LINE</p>
+                  <h1 className="text-2xl md:text-4xl font-bold uppercase tracking-tight">
+                    <span className="opacity-50">&gt;</span> Initialize_Contact
+                  </h1>
                 </div>
-              </a>
+                <div className="text-right">
+                  <p className="text-[10px] tracking-widest opacity-60 uppercase mb-1">Status Report</p>
+                  <p className="text-sm font-bold bg-[#C8FF00]/10 px-3 py-1 rounded inline-block animate-pulse">
+                    {formStatus}
+                  </p>
+                </div>
+              </div>
+
+              {/* Form Content */}
+              <motion.form 
+                animate={{ opacity: phase === 'zoom' ? 1 : 0, filter: phase === 'zoom' ? 'blur(0px)' : 'blur(4px)' }}
+                transition={{ duration: 0.5, delay: 0.5 }}
+                className={`max-w-3xl flex-1 flex flex-col gap-8 ${phase !== 'zoom' && 'pointer-events-none'}`}
+              >
+                {/* Name */}
+                <div className="group">
+                  <label className="text-[10px] uppercase tracking-[0.2em] opacity-50 mb-2 block">&gt; TARGET_IDENTIFIER // NAME</label>
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg md:text-xl font-bold opacity-50">~$</span>
+                    <input 
+                      type="text" 
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      onFocus={() => handleFocus('name', 'VERIFYING_IDENTITY')}
+                      onBlur={() => setFormStatus('AWAITING_INPUT')}
+                      className="bg-transparent border-none outline-none w-full text-[#C8FF00] placeholder:text-[#C8FF00]/20 font-mono text-lg md:text-xl caret-[#C8FF00] focus:ring-0" 
+                      placeholder="_"
+                    />
+                  </div>
+                </div>
+
+                {/* Email */}
+                <div className="group">
+                  <label className="text-[10px] uppercase tracking-[0.2em] opacity-50 mb-2 block">&gt; RETURN_PATH // EMAIL</label>
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg md:text-xl font-bold opacity-50">~$</span>
+                    <input 
+                      type="email" 
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      onFocus={() => handleFocus('email', 'ESTABLISHING_HANDSHAKE')}
+                      onBlur={() => setFormStatus('AWAITING_INPUT')}
+                      className="bg-transparent border-none outline-none w-full text-[#C8FF00] placeholder:text-[#C8FF00]/20 font-mono text-lg md:text-xl caret-[#C8FF00] focus:ring-0" 
+                      placeholder="_"
+                    />
+                  </div>
+                </div>
+
+                {/* Message */}
+                <div className="group flex-1">
+                  <label className="text-[10px] uppercase tracking-[0.2em] opacity-50 mb-2 block">&gt; PAYLOAD // MESSAGE_BODY</label>
+                  <div className="flex items-start gap-3 h-full">
+                    <span className="text-lg md:text-xl font-bold opacity-50 mt-1">~$</span>
+                    <textarea 
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      onFocus={() => handleFocus('message', 'ENCIPHERING_DATA')}
+                      onBlur={() => setFormStatus('AWAITING_INPUT')}
+                      className="bg-transparent border-none outline-none w-full h-full min-h-[150px] text-[#C8FF00] placeholder:text-[#C8FF00]/20 font-mono text-lg md:text-xl caret-[#C8FF00] resize-none focus:ring-0" 
+                      placeholder="_"
+                    />
+                  </div>
+                </div>
+
+                {/* Verification */}
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 mt-4 border-t border-[#C8FF00]/20 pt-8">
+                  <div className="flex items-center gap-4 cursor-pointer" onClick={() => setConfirm(!confirm)}>
+                    <div className={`w-5 h-5 border-2 border-[#C8FF00] flex items-center justify-center transition-colors ${confirm ? 'bg-[#C8FF00]' : 'bg-transparent'}`}>
+                      {confirm && <span className="text-[#020a02] text-xs font-black">X</span>}
+                    </div>
+                    <span className="text-[10px] tracking-[0.2em] uppercase opacity-70 hover:opacity-100 transition-opacity">
+                      Confirm Human Verification
+                    </span>
+                  </div>
+
+                  <button 
+                    type="submit"
+                    onMouseEnter={() => setFormStatus('READY_TO_TRANSMIT')}
+                    onMouseLeave={() => setFormStatus('AWAITING_INPUT')}
+                    className="border-2 border-[#C8FF00] text-[#C8FF00] hover:bg-[#C8FF00] hover:text-[#020a02] font-black px-8 py-3 text-xs tracking-[0.3em] uppercase transition-all duration-300 w-full sm:w-auto"
+                    style={{ boxShadow: '0 0 15px rgba(200,255,0,0.2)' }}
+                  >
+                    Execute [Enter]
+                  </button>
+                </div>
+              </motion.form>
+
+              {/* Direct Comms & Socials inside terminal */}
+              <div className="mt-16 pt-8 border-t border-[#C8FF00]/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-8 pb-10">
+                <div className="space-y-2">
+                  <p className="text-[10px] tracking-[0.2em] opacity-50 uppercase block">&gt; DIRECT_COMMS</p>
+                  <p className="text-xs tracking-widest"><span className="opacity-50">EML:</span> contact@pangerlkr.link</p>
+                  <p className="text-xs tracking-widest"><span className="opacity-50">TEL:</span> +91 81328 72135</p>
+                </div>
+                
+                <div className="space-y-2 text-left md:text-right">
+                  <p className="text-[10px] tracking-[0.2em] opacity-50 uppercase block">&gt; SOCIAL_HANDSHAKE</p>
+                  <div className="flex gap-4">
+                    {SOCIALS.map((s) => (
+                      <a key={s.label} href={s.href} target="_blank" rel="noopener noreferrer" className="text-xs tracking-widest hover:bg-[#C8FF00] hover:text-[#020a02] px-2 py-1 transition-colors uppercase">
+                        [{s.label}]
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
             </div>
-          </motion.div>
-
-          {/* Right: Form */}
-          <motion.div
-            initial={{ opacity: 0, x: 30 }}
-            whileInView={{ opacity: 1, x: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.8 }}
-            className="glass p-8 md:p-10 rounded-3xl"
-          >
-            <form 
-              name="contact" 
-              method="POST" 
-              data-netlify="true" 
-              data-netlify-honeypot="bot-field"
-              className="space-y-6"
-            >
-              {/* Netlify Hidden Fields */}
-              <input type="hidden" name="form-name" value="contact" />
-              <div className="hidden">
-                <label>Don’t fill this out if you’re human: <input name="bot-field" /></label>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <label htmlFor="name" className="text-[10px] tracking-widest uppercase text-white/30 font-bold ml-1">Full Name</label>
-                  <input
-                    type="text"
-                    id="name"
-                    name="name"
-                    required
-                    placeholder="John Doe"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/10 focus:outline-none focus:border-accent/50 transition-colors"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <label htmlFor="email" className="text-[10px] tracking-widest uppercase text-white/30 font-bold ml-1">Email Address</label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    required
-                    placeholder="john@example.com"
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/10 focus:outline-none focus:border-accent/50 transition-colors"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="message" className="text-[10px] tracking-widest uppercase text-white/30 font-bold ml-1">Message</label>
-                <textarea
-                  id="message"
-                  name="message"
-                  required
-                  rows={4}
-                  placeholder="How can we help?"
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm text-white placeholder:text-white/10 focus:outline-none focus:border-accent/50 transition-colors resize-none"
-                />
-              </div>
-              <div className="flex items-center gap-3 ml-1">
-                <input
-                  type="checkbox"
-                  id="confirm"
-                  name="confirm"
-                  required
-                  className="w-4 h-4 rounded bg-white/5 border-white/10 text-accent focus:ring-accent focus:ring-offset-[#121212] transition-colors"
-                />
-                <label htmlFor="confirm" className="text-[10px] tracking-widest uppercase text-white/30 font-bold">
-                  I am human and agree to be contacted.
-                </label>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full bg-accent text-[#121212] font-bold py-4 rounded-xl text-xs tracking-[0.2em] uppercase hover:scale-[1.02] active:scale-95 transition-all duration-300 shadow-[0_0_40px_rgba(200,255,0,0.2)]"
-              >
-                Send Message
-              </button>
-            </form>
-          </motion.div>
-        </div>
-
-        {/* Socials */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          whileInView={{ opacity: 1 }}
-          viewport={{ once: true, amount: 0.4 }}
-          transition={{ duration: 0.7, delay: 0.35 }}
-          className="flex items-center justify-center gap-6 flex-wrap mb-24"
-        >
-          {SOCIALS.map((s) => (
-            <a
-              key={s.label}
-              href={s.href}
-              target="_blank"
-              rel="noopener noreferrer"
-              id={`social-${s.label.toLowerCase().replace(' ', '-')}`}
-              aria-label={s.label}
-              className="glass w-14 h-14 rounded-2xl flex items-center justify-center text-white/30 hover:text-accent hover:border-accent/30 transition-all duration-300 hover:scale-110 active:scale-95"
-            >
-              {s.icon}
-            </a>
-          ))}
+          </div>
         </motion.div>
-
-        {/* Footer */}
-        <div className="text-center">
-          <p className="text-xs text-white/20 tracking-widest uppercase">
-            © {new Date().getFullYear()} Pangerkumzuk Longkumer · Founder of NEXUSCIPHERGUARD India
-          </p>
-        </div>
-      </div>
+        
+        {/* Monitor Stand (hide on zoom) */}
+        <motion.div 
+          className="w-40 bg-[#151515] border-t border-[#333]"
+          animate={{ opacity: phase === 'zoom' ? 0 : 1, height: phase === 'zoom' ? 0 : 70 }}
+          transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+          style={{ clipPath: 'polygon(20% 0%, 80% 0%, 100% 100%, 0% 100%)' }}
+        />
+        <motion.div 
+          className="w-56 bg-[#0f0f0f] rounded-t-lg border-t border-[#222]"
+          animate={{ opacity: phase === 'zoom' ? 0 : 1, height: phase === 'zoom' ? 0 : 16 }}
+          transition={{ duration: 1.2, ease: [0.22, 1, 0.36, 1] }}
+        />
+      </motion.div>
     </section>
   )
 }
+

@@ -10,7 +10,7 @@ export default function AboutPage() {
     <main className="relative min-h-screen bg-[#121212]">
       <Navbar />
       
-      <div className="pt-24">
+      <div className="pt-24 relative">
         <About />
         <Media />
       </div>

@@ -1,9 +1,8 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState, RefObject } from 'react'
 import { useScroll, useTransform, useMotionValueEvent } from 'framer-motion'
 
-// 106 frames: frame_000 → frame_105
 const FRAME_COUNT = 106
 const FRAME_PATH = (i: number) =>
   `/sequence1/frame_${String(i).padStart(3, '0')}_delay-0.04s.png`
@@ -13,6 +12,8 @@ function drawImageCover(
   img: HTMLImageElement,
   canvas: HTMLCanvasElement
 ) {
+  if (!img.naturalWidth || !img.naturalHeight || !canvas.width || !canvas.height) return
+
   const canvasAspect = canvas.width / canvas.height
   const imgAspect = img.naturalWidth / img.naturalHeight
 
@@ -25,7 +26,7 @@ function drawImageCover(
   } else {
     // Image is taller — focus on the UPPER section (sy = 0)
     sh = img.naturalWidth / canvasAspect
-    sy = 0 // Top-aligned crop
+    sy = 0 
   }
 
   ctx.drawImage(img, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height)
@@ -35,22 +36,52 @@ export default function SectionScrollyCanvas({ scrollYProgress }: { scrollYProgr
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const imagesRef = useRef<HTMLImageElement[]>([])
   const currentFrameRef = useRef(0)
-  const loadedCountRef = useRef(0)
+  const [isReady, setIsReady] = useState(false)
 
   const frameIndex = useTransform(scrollYProgress, [0, 1], [0, FRAME_COUNT - 1])
 
+  // Preload images
+  useEffect(() => {
+    const images = new Array(FRAME_COUNT)
+    let loadedCount = 0
+
+    for (let i = 0; i < FRAME_COUNT; i++) {
+      const img = new Image()
+      img.src = FRAME_PATH(i)
+      img.onload = () => {
+        loadedCount++
+        if (loadedCount === 1) setIsReady(true)
+        
+        // If this is the current frame, draw it immediately
+        if (i === currentFrameRef.current) {
+          const canvas = canvasRef.current
+          const ctx = canvas?.getContext('2d')
+          if (canvas && ctx) drawImageCover(ctx, img, canvas)
+        }
+      }
+      images[i] = img
+    }
+    imagesRef.current = images
+
+    return () => {
+      imagesRef.current = []
+    }
+  }, [])
+
+  // Handle resize and initial draw
   useEffect(() => {
     const canvas = canvasRef.current
     if (!canvas) return
 
     const setSize = () => {
-      canvas.width = window.innerWidth * window.devicePixelRatio
-      canvas.height = window.innerHeight * window.devicePixelRatio
+      const dpr = window.devicePixelRatio || 1
+      canvas.width = window.innerWidth * dpr
+      canvas.height = window.innerHeight * dpr
       canvas.style.width = window.innerWidth + 'px'
       canvas.style.height = window.innerHeight + 'px'
 
       const img = imagesRef.current[currentFrameRef.current]
-      if (img?.complete) {
+      if (img?.complete && img.naturalWidth > 0) {
         const ctx = canvas.getContext('2d')
         if (ctx) drawImageCover(ctx, img, canvas)
       }
@@ -58,38 +89,29 @@ export default function SectionScrollyCanvas({ scrollYProgress }: { scrollYProgr
 
     setSize()
     window.addEventListener('resize', setSize)
+    return () => window.removeEventListener('resize', setSize)
+  }, [isReady])
 
-    const ctx = canvas.getContext('2d')
-    imagesRef.current = new Array(FRAME_COUNT)
+  // Scroll handler
+  useMotionValueEvent(frameIndex, 'change', (latest) => {
+    const idx = Math.round(Math.min(Math.max(latest, 0), FRAME_COUNT - 1))
+    if (idx === currentFrameRef.current) return
+    
+    currentFrameRef.current = idx
+    const canvas = canvasRef.current
+    const ctx = canvas?.getContext('2d')
+    const img = imagesRef.current[idx]
 
-    for (let i = 0; i < FRAME_COUNT; i++) {
-      const img = new Image()
-      img.src = FRAME_PATH(i)
+    if (canvas && ctx && img?.complete && img.naturalWidth > 0) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height)
+      drawImageCover(ctx, img, canvas)
+    } else if (img) {
       img.onload = () => {
-        loadedCountRef.current++
-        if (i === 0 && ctx) {
+        if (idx === currentFrameRef.current && canvas && ctx) {
+          ctx.clearRect(0, 0, canvas.width, canvas.height)
           drawImageCover(ctx, img, canvas)
         }
       }
-      imagesRef.current[i] = img
-    }
-
-    return () => {
-      window.removeEventListener('resize', setSize)
-    }
-  }, [])
-
-  useMotionValueEvent(frameIndex, 'change', (latest) => {
-    const canvas = canvasRef.current
-    const ctx = canvas?.getContext('2d')
-    if (!canvas || !ctx) return
-
-    const idx = Math.round(Math.min(Math.max(latest, 0), FRAME_COUNT - 1))
-    currentFrameRef.current = idx
-    const img = imagesRef.current[idx]
-    if (img?.complete && img.naturalWidth > 0) {
-      ctx.clearRect(0, 0, canvas.width, canvas.height)
-      drawImageCover(ctx, img, canvas)
     }
   })
 
@@ -97,15 +119,13 @@ export default function SectionScrollyCanvas({ scrollYProgress }: { scrollYProgr
     <div className="absolute inset-0 pointer-events-none">
       <canvas
         ref={canvasRef}
-        className="absolute inset-0"
+        className="absolute inset-0 block"
         style={{ background: '#121212' }}
       />
-      {/* Dark overlay to ensure text readability */}
-      <div className="absolute inset-0 bg-black/60" />
-      
-      {/* Gradients to blend with section */}
-      <div className="absolute top-0 left-0 right-0 h-32 bg-gradient-to-b from-[#121212] to-transparent" />
-      <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-[#121212] to-transparent" />
+      {/* Cinematic Overlays */}
+      <div className="absolute inset-0 bg-black/50" />
+      <div className="absolute inset-0 bg-gradient-to-b from-[#121212] via-transparent to-[#121212] opacity-80" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_0%,rgba(18,18,18,0.2)_100%)]" />
     </div>
   )
 }
