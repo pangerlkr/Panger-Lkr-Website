@@ -64,10 +64,10 @@ export default function HomeStory() {
                   initial={{ opacity: 0, y: 30 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.8, delay: 0.4 }}
-                  className="glass p-10 rounded-[40px] border-l-4"
+                  className="glass p-6 md:p-8 rounded-[28px] border-l-4"
                   style={{ borderLeftColor: slide.color }}
                 >
-                  <p className="text-white/50 text-sm md:text-lg leading-relaxed italic">
+                  <p className="text-white/50 text-sm md:text-base leading-relaxed italic">
                     &ldquo;{slide.description}&rdquo;
                   </p>
                 </motion.div>
