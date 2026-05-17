@@ -217,6 +217,8 @@ function GenerativeArtScene() {
   return <div ref={mountRef} className="absolute inset-0 w-full h-full" />
 }
 
+type OtpState = 'idle' | 'sending' | 'sent' | 'verifying' | 'verified' | 'error'
+
 export default function Contact() {
   const [formStatus, setFormStatus] = useState('AWAITING_INPUT')
   const [name, setName] = useState('')
@@ -225,7 +227,96 @@ export default function Contact() {
   const [confirm, setConfirm] = useState(false)
   const [mounted, setMounted] = useState(false)
 
+  // OTP state
+  const [otpState, setOtpState] = useState<OtpState>('idle')
+  const [otpCode, setOtpCode] = useState('')
+  const [otpError, setOtpError] = useState('')
+  const [otpCooldown, setOtpCooldown] = useState(0)
+  const cooldownRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const lastEmailRef = useRef('')
+
   useEffect(() => { setMounted(true) }, [])
+
+  useEffect(() => {
+    return () => { if (cooldownRef.current) clearInterval(cooldownRef.current) }
+  }, [])
+
+  const startCooldown = () => {
+    setOtpCooldown(30)
+    cooldownRef.current = setInterval(() => {
+      setOtpCooldown((n) => {
+        if (n <= 1) { clearInterval(cooldownRef.current!); return 0 }
+        return n - 1
+      })
+    }, 1000)
+  }
+
+  const sendOtp = async (targetEmail: string) => {
+    if (!targetEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(targetEmail)) return
+    if (otpCooldown > 0) return
+    setOtpState('sending')
+    setOtpError('')
+    setFormStatus('DISPATCHING_OTP')
+    try {
+      const res = await fetch('/api/send-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: targetEmail }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Failed')
+      setOtpState('sent')
+      setFormStatus('OTP_DISPATCHED')
+      startCooldown()
+    } catch (e: any) {
+      setOtpState('error')
+      setOtpError(e.message || 'Failed to send OTP.')
+      setFormStatus('TRANSMISSION_ERROR')
+    }
+  }
+
+  const verifyOtp = async () => {
+    if (!otpCode || otpCode.length !== 6) { setOtpError('Enter the 6-digit code.'); return }
+    setOtpState('verifying')
+    setOtpError('')
+    setFormStatus('VERIFYING_CODE')
+    try {
+      const res = await fetch('/api/verify-otp', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp: otpCode }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Invalid code')
+      setOtpState('verified')
+      setFormStatus('EMAIL_VERIFIED')
+    } catch (e: any) {
+      setOtpState('sent')
+      setOtpError(e.message || 'Verification failed.')
+      setFormStatus('VERIFY_FAILED')
+    }
+  }
+
+  const handleEmailBlur = () => {
+    setFormStatus('AWAITING_INPUT')
+    if (email && email !== lastEmailRef.current && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      lastEmailRef.current = email
+      setOtpState('idle')
+      setOtpCode('')
+      setOtpError('')
+      sendOtp(email)
+    }
+  }
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (otpState !== 'verified') {
+      setOtpError('Please verify your email first.')
+      return
+    }
+    // TODO: handle actual form submission
+    setFormStatus('TRANSMISSION_COMPLETE')
+  }
 
   return (
     <section
@@ -306,7 +397,7 @@ export default function Contact() {
           </div>
 
           {/* Form */}
-          <form className="flex flex-col gap-7">
+          <form className="flex flex-col gap-7" onSubmit={handleSubmit}>
             {/* Name */}
             <div className="flex flex-col gap-2">
               <label className="text-[9px] uppercase tracking-[0.25em] opacity-45">
@@ -328,22 +419,86 @@ export default function Contact() {
 
             {/* Email */}
             <div className="flex flex-col gap-2">
-              <label className="text-[9px] uppercase tracking-[0.25em] opacity-45">
+              <label className="text-[9px] uppercase tracking-[0.25em] opacity-45 flex items-center gap-3">
                 &gt; RETURN_PATH // EMAIL
+                {otpState === 'verified' && (
+                  <span className="text-[8px] bg-[#C8FF00]/10 border border-[#C8FF00]/30 px-2 py-0.5 tracking-widest" style={{ color: '#C8FF00' }}>
+                    VERIFIED
+                  </span>
+                )}
               </label>
               <div className="flex items-center gap-3 border-b border-[#C8FF00]/15 pb-2 focus-within:border-[#C8FF00]/40 transition-colors">
                 <span className="text-base font-bold opacity-40 shrink-0">~$</span>
                 <input
                   type="email"
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value)
+                    if (otpState !== 'idle') { setOtpState('idle'); setOtpCode(''); setOtpError('') }
+                  }}
                   onFocus={() => setFormStatus('ESTABLISHING_HANDSHAKE')}
-                  onBlur={() => setFormStatus('AWAITING_INPUT')}
+                  onBlur={handleEmailBlur}
                   className="bg-transparent border-none outline-none w-full text-[#C8FF00] placeholder:text-[#C8FF00]/20 font-mono text-base caret-[#C8FF00] focus:ring-0"
                   placeholder="_"
                 />
+                {otpState === 'sending' && (
+                  <span className="text-[8px] opacity-50 tracking-widest shrink-0 animate-pulse">SENDING...</span>
+                )}
               </div>
             </div>
+
+            {/* OTP input — visible after code is sent */}
+            {(otpState === 'sent' || otpState === 'verifying' || otpState === 'error') && (
+              <motion.div
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col gap-3 pl-2 border-l-2 border-[#C8FF00]/20"
+              >
+                <label className="text-[9px] uppercase tracking-[0.25em] opacity-45">
+                  &gt; OTP_VERIFICATION // CHECK_INBOX
+                </label>
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 border-b border-[#C8FF00]/15 pb-2 focus-within:border-[#C8FF00]/40 transition-colors flex-1">
+                    <span className="text-base font-bold opacity-40 shrink-0">~$</span>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      maxLength={6}
+                      value={otpCode}
+                      onChange={(e) => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      onFocus={() => setFormStatus('ENTERING_CODE')}
+                      onBlur={() => setFormStatus('AWAITING_INPUT')}
+                      className="bg-transparent border-none outline-none w-full text-[#C8FF00] placeholder:text-[#C8FF00]/20 font-mono text-base caret-[#C8FF00] focus:ring-0 tracking-[0.5em]"
+                      placeholder="______"
+                      autoFocus
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={verifyOtp}
+                    disabled={otpState === 'verifying'}
+                    className="border border-[#C8FF00]/50 text-[#C8FF00] hover:bg-[#C8FF00] hover:text-[#020a02] font-black px-4 py-2 text-[8px] tracking-[0.25em] uppercase transition-all duration-200 shrink-0 disabled:opacity-40"
+                  >
+                    {otpState === 'verifying' ? 'CHECKING...' : 'VERIFY'}
+                  </button>
+                </div>
+                <div className="flex items-center justify-between">
+                  {otpError && (
+                    <span className="text-[8px] tracking-widest opacity-80" style={{ color: '#FF3B30' }}>
+                      ERR: {otpError}
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => sendOtp(email)}
+                    disabled={otpCooldown > 0}
+                    className="text-[8px] tracking-widest opacity-40 hover:opacity-80 transition-opacity disabled:opacity-20 ml-auto"
+                  >
+                    {otpCooldown > 0 ? `RESEND_IN_${otpCooldown}s` : 'RESEND_CODE'}
+                  </button>
+                </div>
+              </motion.div>
+            )}
 
             {/* Message */}
             <div className="flex flex-col gap-2">
@@ -383,9 +538,10 @@ export default function Contact() {
               <button
                 type="submit"
                 onMouseEnter={() => setFormStatus('READY_TO_TRANSMIT')}
-                onMouseLeave={() => setFormStatus('AWAITING_INPUT')}
-                className="border border-[#C8FF00] text-[#C8FF00] hover:bg-[#C8FF00] hover:text-[#020a02] font-black px-6 py-2.5 text-[9px] tracking-[0.3em] uppercase transition-all duration-300 w-full sm:w-auto"
-                style={{ boxShadow: '0 0 12px rgba(200,255,0,0.15)' }}
+                onMouseLeave={() => setFormStatus(otpState === 'verified' ? 'EMAIL_VERIFIED' : 'AWAITING_INPUT')}
+                disabled={otpState !== 'verified'}
+                className="border border-[#C8FF00] text-[#C8FF00] hover:bg-[#C8FF00] hover:text-[#020a02] font-black px-6 py-2.5 text-[9px] tracking-[0.3em] uppercase transition-all duration-300 w-full sm:w-auto disabled:opacity-30 disabled:cursor-not-allowed"
+                style={{ boxShadow: otpState === 'verified' ? '0 0 12px rgba(200,255,0,0.25)' : 'none' }}
               >
                 Execute [Enter]
               </button>
