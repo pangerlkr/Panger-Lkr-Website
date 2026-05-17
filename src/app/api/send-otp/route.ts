@@ -1,22 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { otpStore } from '@/lib/otpStore'
 
 const RESEND_API_KEY = 're_9nfY45vC_GjTN9dthEF2s86bh9tG7hmEV'
-const FROM = 'NEXUS_TERM <noreply@pangerlkr.link>'
-const OTP_TTL_MS = 10 * 60 * 1000 // 10 minutes
+const FROM = 'PANGER_LKR <noreply@pangerlkr.link>'
 
 export async function POST(req: NextRequest) {
   try {
-    const { email } = await req.json()
+    const { email, otp } = await req.json()
 
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       return NextResponse.json({ error: 'Invalid email.' }, { status: 400 })
     }
-
-    const otp = String(Math.floor(100000 + Math.random() * 900000))
-    const expiresAt = Date.now() + OTP_TTL_MS
-
-    otpStore.set(email.toLowerCase(), { otp, expiresAt, verified: false })
+    if (!otp || String(otp).length !== 6) {
+      return NextResponse.json({ error: 'Invalid OTP.' }, { status: 400 })
+    }
 
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
@@ -27,7 +23,7 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({
         from: FROM,
         to: [email],
-        subject: 'NEXUS_TERM // VERIFICATION_CODE',
+        subject: 'PANGER_LKR // Contact Verification',
         html: `<!DOCTYPE html>
 <html lang="en">
 <head>
