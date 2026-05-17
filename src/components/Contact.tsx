@@ -354,10 +354,11 @@ export default function Contact() {
     setFormStatus('TRANSMITTING...')
 
     try {
-      const res = await fetch('/api/submit-contact', {
+      const body = new URLSearchParams({ 'form-name': 'contact', name, email, message })
+      const res = await fetch('/', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, message }),
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: body.toString(),
       })
       if (!res.ok) throw new Error('Submission failed')
       setSubmitPhase('done')
