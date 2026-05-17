@@ -226,11 +226,6 @@ interface OtpRecord {
 type OtpPhase = 'idle' | 'sending' | 'awaiting' | 'verifying' | 'verified'
 type SubmitPhase = 'idle' | 'submitting' | 'done' | 'error'
 
-function encodeFormData(data: Record<string, string>) {
-  return Object.entries(data)
-    .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(v)}`)
-    .join('&')
-}
 
 export default function Contact() {
   const [formStatus, setFormStatus] = useState('AWAITING_INPUT')
@@ -359,15 +354,10 @@ export default function Contact() {
     setFormStatus('TRANSMITTING...')
 
     try {
-      const res = await fetch('/', {
+      const res = await fetch('/api/submit-contact', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: encodeFormData({
-          'form-name': 'contact',
-          name,
-          email,
-          message,
-        }),
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, message }),
       })
       if (!res.ok) throw new Error('Submission failed')
       setSubmitPhase('done')
@@ -414,13 +404,6 @@ export default function Contact() {
           animate={{ opacity: [1, 0.6, 1, 0.8, 1] }}
           transition={{ duration: 0.25, repeat: Infinity, repeatType: 'reverse' }}
         />
-
-        {/* Hidden Netlify form for detection */}
-        <form name="contact" data-netlify="true" hidden>
-          <input type="text" name="name" />
-          <input type="email" name="email" />
-          <textarea name="message" />
-        </form>
 
         <div className="relative z-10 max-w-xl w-full mx-auto flex flex-col gap-8">
           {/* Header */}
